@@ -1,0 +1,73 @@
+class EventManagerClass {
+
+    init() {
+
+        this.waitList = {};
+        this.triggered = {};
+
+    }
+
+    addTrigger(event, func, params, repeat) {
+
+        if (typeof this.waitList[event] == 'undefined')
+            this.waitList[event] = [];
+
+        this.waitList[event].push({'func' : func, 'repeat' : repeat, 'params' : params});
+        
+        if (typeof this.triggered[event] != 'undefined') {
+
+            for (var i in this.triggered)
+                this.execute(event, this.waitList[event].length - 1, params);
+
+        }
+
+    }
+
+    trigger(event, params) {
+
+        if (typeof this.waitList[event] != 'undefined') {
+
+            for (var i in this.waitList[event])
+                this.execute(event, i, params);
+
+        }
+
+        if (typeof this.triggered[event] == 'undefined')
+            this.triggered[event] = [];
+
+        this.triggered[event].push(params);
+
+    }
+
+    execute(event, trigger, params) {
+
+        if (typeof this.waitList[event][trigger]['func'] != 'undefined') {
+
+            this.waitList[event][trigger]['func']( this.getMergedParams(this.waitList[event][trigger]['params'], params) );
+
+            if (this.waitList[event][trigger]['repeat'] !== true)
+                delete this.waitList[event][trigger];
+
+        }
+
+    }
+
+    getMergedParams(defaultObj, setObj) {
+
+        if (typeof defaultObj != 'object')
+            defaultObj = {};
+
+        if (typeof setObj != 'object')
+            setObj = {};
+
+        var _merge = Object.assign({}, defaultObj);
+        _merge = Object.assign(_merge, setObj);
+
+        return _merge;
+
+    }
+
+}
+
+let EventManager = new EventManagerClass();
+EventManager.init();

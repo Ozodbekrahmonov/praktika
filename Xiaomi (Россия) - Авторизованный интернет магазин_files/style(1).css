@@ -1,0 +1,195 @@
+.compare_top {
+    width: 30px;
+    height: 40px;
+    overflow: hidden;
+    cursor: pointer;
+    font-size: 0;
+    text-decoration: none;
+    display: block;
+    z-index: 10;
+    position: relative;
+}
+
+.compare_top {
+    top: 7px;
+    font-size: 12px;
+    color: red;
+    cursor: default;
+}
+
+.compare_top svg {
+    width: 29px;
+    height: 27px;
+}
+
+.compare_top.active {
+    cursor: pointer;
+    top: 7px;
+}
+
+.data-compare-amount {
+    padding-right: 0.7rem;      
+}
+    
+.data-compare-amount::after {
+    right: 10px;
+}
+  
+.data-compare-amount::after{
+    top: 0;
+}
+    
+.data-compare-amount {
+    position: relative;
+}
+
+.data-compare-amount::after {
+    position: absolute;
+    width: 13px;
+    height: 13px;
+    background: #FF6700;
+    border-radius: 2px;
+    display: flex;
+    justify-content: center;
+    /*align-items: center;*/
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 14px;
+    letter-spacing: 0.015em;
+    color: #ffffff;
+    top: 0px;
+    right: 0px;
+    content: attr(data-compare-amount);
+}
+
+.data-compare-amount.deactive::after {
+    content: none;
+}
+
+.compare_item_button {
+    background-image: url(/local/templates/main/images/scale_light.svg);
+    background-repeat: no-repeat;
+    background-size: 25px;
+    font-size: 14px;
+    text-decoration: none;
+    width: 92px;
+    height: 23px;
+    color: #BEBFC3;
+    overflow: hidden;
+    cursor: pointer;
+    z-index: 10;
+    position: relative;
+    display: block;
+}
+
+.compare_item_button img { 
+    position: relative;
+    top: 0;
+    width: 25px;
+}
+
+.compare_item_button.active {
+    background-image: url(/local/templates/main/images/scale_dark.svg);
+    background-size: 25px;
+    width: 92px;
+    height: 23px;
+    color: #FF6700;
+}
+
+@media screen and (max-width: 575px) {
+    a:hover {
+        color: #BEBFC3;
+    }
+    a.active:hover {
+        color: #6D6D6D;
+    }
+}
+
+@media screen and (min-width: 575px) {
+
+    .compare_item_button:hover {
+        background-image: url(/local/templates/main/images/scale_dark.svg);
+        background-size: 25px;
+        width: 92px;
+        height: 23px;
+        color: #6D6D6D;
+    }
+
+}
+
+.compare-span {
+    padding-left: 28px;
+}
+
+@media screen and (max-width: 575px) {
+    a.compare_item_button:hover {
+        color: #BEBFC3;
+    }
+    a.compare_item_button.active:hover {
+        color: #FF6700;
+    }
+}
+
+@media screen and (min-width: 575px) {
+    .compare_item_button:hover {
+        background-image: url(/local/templates/main/images/scale_dark.svg);
+        background-size: 25px;
+        width: 92px;
+        height: 23px;
+        color: #FF6700;
+    }
+
+}
+
+.compare-span {
+    padding-left: 28px;
+}
+
+@media screen and (max-width: 574px) {
+    .compare_catalog_button {
+        background-size: 19px;
+        top: 11px;
+        right: 0;
+    }
+}
+
+.compare_catalog_button  {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    top: 15px;
+    right: 23px;
+    overflow: hidden;
+    cursor: pointer;
+    font-size: 0;
+    text-decoration: none;
+    display: block;
+    z-index: 10;
+}
+
+@media screen and (max-width: 574px) {
+    .compare_catalog_button {
+        position: relative;
+        width: 32px;
+        height: 32px;
+        top: 12px;
+        right: -4px;
+        display: inline-block;
+    }
+    
+    .compare_catalog_button img {
+        top: 0 !important;
+    }
+    .compare_catalog_button.active img {
+        top: -100% !important;
+    }
+}
+
+.compare_catalog_button img { 
+    position: relative;
+    top: 0;
+}
+
+.compare_catalog_button:hover img, .compare_catalog_button.active img {
+    top: -100%;
+}

@@ -1,0 +1,473 @@
+const MetriksId = {
+    'YA' : 40577820
+}
+
+
+function _YaSend(event, i) {
+
+    i = i || 0;
+    if (i > 50)
+        return;
+
+    if (typeof event != 'undefined' && event != '') {
+
+        if (typeof window['yaCounter' + MetriksId['YA']] !== 'undefined') {
+            console.log(['send yaCounter', event]);
+            window['yaCounter' + MetriksId['YA']].reachGoal(event);
+        } else {
+            setTimeout(function(){_YaSend(event, ++i)}, 100);
+        }
+
+    }
+
+}
+
+function _GoogleSend(event, i) {
+
+    i = i || 0;
+    if (i > 50)
+        return;
+
+    if (typeof event == 'object' && Object.keys(event).length != 0) {
+
+        if (typeof window['dataLayer'] != 'undefined') {
+            console.log(['send dataLayer', event]);
+            window['dataLayer'].push(event);
+        } else {
+            setTimeout(function(){_GoogleSend(event, ++i)}, 100);
+        }
+
+    }
+
+}
+
+function _FacebookSend(event, action, params, i) {
+
+    i = i || 0;
+    if (i > 50)
+        return;
+
+    if (typeof event != 'undefined') {
+
+        if (typeof window['fbq'] != 'undefined') {
+            console.log(['send fbq', event, action, params]);
+
+            if (typeof action != 'undefined') {
+
+                if (typeof params == 'object' && Object.keys(params).length != 0) {
+                    window['fbq'](event, action, params);
+                } else {
+                    window['fbq'](event, action);
+                }
+
+            } else {
+                window['fbq'](event);
+            }
+
+        } else {
+            setTimeout(function(){_FacebookSend(event, action, params, ++i)}, 100);
+        }
+
+    }
+
+}
+
+EventManager.addTrigger('loadPage', function(params) {
+
+    if (params['code'] == '404') {
+
+        _YaSend('ya.error_404');
+        _GoogleSend({});
+
+    } else if (params['code'] == '200') {
+
+        if (typeof params['page'] != 'undefined') {
+
+            if (params['page'] == 'orders_click_one_button' && !isNaN((params['first_visit'] - 0)) && (params['first_visit'] - 0) < 1) {
+
+                _YaSend('ya.purchase_quick');
+                _GoogleSend({'event':'eec.purchaseQuick'});
+                _GoogleSend('event', 'purchase', {
+                    'value': params['value']['price'] - 0,
+                    'items': [{'id': params['value']['id'], 'google_business_vertical': 'retail'}]
+                });
+                /*_FacebookSend('trackCustom', 'Purchase', {
+
+                    'content_type' : 'product',
+                    'value' : params['value']['price'] - 0,
+                    'contents' : [{'id' : params['value']['id'], 'quantity' : 1}],
+                    'currency' : 'RUB'
+
+                });*/
+
+            } else if (params['page'] == 'catalog') {
+                //_FacebookSend('trackCustom', 'ViewCategory');
+            } else if (params['page'] == 'good') {
+
+                /*_FacebookSend('trackCustom', 'ViewContent', {
+
+                    'content_type' : 'product',
+                    'value' : params['value']['price'],
+                    'contents' : [{'id' : params['value']['id']}],
+                    'currency' : 'RUB'
+
+                });*/
+
+            } else if (params['page'] == 'order_success' && !isNaN((params['first_visit'] - 0)) && (params['first_visit'] - 0) < 1) {
+
+                if (typeof params['value'] == 'object' && params['value']['goods'].length > 0) {
+
+                    var _fbGoods = [];
+
+                        for (var i in params['value']['goods'])
+                            _fbGoods.push({'id' : params['value']['goods'][i]['id'], 'quantity' : params['value']['goods'][i]['quantity']});
+
+                    /*_FacebookSend('trackCustom', 'Purchase', {
+
+                        'content_type' : 'product',
+                        'value' : params['value']['revenue'] - 0,
+                        'contents' : _fbGoods,
+                        'currency' : 'RUB'
+
+                    });*/
+
+                }
+
+            } else if (params['page'] == 'cart') {
+
+                if (typeof params['value'] == 'object' && params['value']['goods'].length > 0) {
+
+                    var _fbGoods = [];
+
+                        for (var i in params['value']['goods'])
+                            _fbGoods.push({'id' : params['value']['goods'][i]['id'], 'quantity' : params['value']['goods'][i]['quantity']});
+
+                    /*_FacebookSend('trackCustom', 'InitiateCheckout', {
+
+                        'content_type' : 'product',
+                        'value' : (params['value']['summ'] - 0) - (params['value']['discount'] - 0),
+                        'contents' : _fbGoods,
+                        'currency' : 'RUB'
+
+                    });*/
+
+                }
+
+            }
+
+        }
+
+    }
+
+}, {}, true);
+
+EventManager.addTrigger('checkout', function(params) {
+
+    if (params['actions'] == 'delete' && typeof params['value']['id'] != 'undefined') {
+
+        _YaSend('');
+        _GoogleSend({
+
+          'event':'eec.remove',
+          'ecommerce': {
+
+            'currencyCode': 'RUB',
+            'remove': {
+
+              'products': [{
+
+                'id': params['value']['id'] - 0,
+                'name': params['value']['name'],
+                'price': params['value']['price'] - 0,
+                'brand': params['value']['brand'],
+                'quantity': params['value']['quantity'],
+                'category': params['value']['category'],
+                'variant': params['value']['color'],
+                'dimension1': params['value']['dimension1'],
+                'dimension3': params['value']['dimension3'],
+
+              }]
+
+            }
+
+          }
+
+        });
+
+    } else if (params['actions'] == 'add' && typeof params['value']['id'] != 'undefined') {
+
+        /*_FacebookSend('trackCustom', 'AddToCart', {
+
+            'content_type' : 'product',
+            'value' : params['value']['price'] - 0,
+            'contents' : [{
+
+                'id' : params['value']['id'],
+                'quantity' : 1
+
+            }],
+            'currency' : 'RUB'
+
+        });*/
+
+    } else if (params['actions'] == 'add_bundle') {
+
+        if (typeof params['value'] == 'object' && typeof params['value'].length != 'undefined' && params['value'].length > 0) {
+
+            var _goodsFB = [];
+            var _summ = 0;
+
+                for (var i = 0; i < params['value'].length; i++) {
+
+                    _goodsFB.push({'id' : params['value'][i]['id'], 'quantity' : params['value'][i]['quantity']});
+                    _summ += params['value'][i]['price'];
+
+                }
+
+            _YaSend('ya.pdp_bundle_tocart');
+            /*_FacebookSend('track', 'AddToCart', {
+
+              'content_type': 'product',
+              'value': _summ,
+              'contents': _goodsFB,
+              'currency': 'RUB'
+
+            });*/
+
+        }
+
+    }
+
+}, {}, true);
+
+EventManager.addTrigger('modules', function(params) {
+
+    if (params['module'] == 'user') {
+
+        if (params['type'] == 'auth') {
+
+            _YaSend('ya.user_authorize');
+            _GoogleSend({
+
+                'event' : 'User',
+                'action' : 'Authorize'
+
+            });
+
+        } else if (params['type'] == 'register') {
+
+            _YaSend('ya.user_register');
+            _GoogleSend({
+
+                'event' : 'User',
+                'action' : 'Register'
+
+            });
+
+        }
+
+
+    } else if (params['module'] == 'subscribe') {
+
+        if (params['type'] == 'success') {
+
+            _YaSend('ya.subscribe_email');
+            _GoogleSend({
+
+                'event' : 'Subscribe',
+                'action' : 'Form email'
+
+            });
+
+        }
+
+    } else if (params['module'] == 'filter') {
+
+        if (params['type'] == 'onfiltred') {
+
+            _YaSend('ya.ui_filter');
+            _GoogleSend({
+
+                'event' : 'UI',
+                'action' : 'Filter',
+
+            });
+
+        }
+
+    }
+
+}, {}, true);
+
+EventManager.addTrigger('Elements', function(params) {
+
+    if (params['object'] == 'phoneLink') {
+
+        if (params['type'] == 'click' && params['value'] != '') {
+
+            _YaSend('');
+            _GoogleSend({
+
+                'event' : 'Contact Links',
+                'action' : 'Telephone',
+                'target' : params['value']
+
+            });
+
+        }
+
+    } else if (params['object'] == 'viewList') {
+
+        if (params['type'] == 'click') {
+
+            _YaSend('ya.ui_viewed_products');
+            _GoogleSend({
+
+                'event' : 'UI',
+                'action' : 'Viewed Products',
+
+            });
+
+        }
+
+    }
+
+}, {}, true);
+
+EventManager.addTrigger('sku_tabs', function(params) {
+
+    if (params['object'] == 'installment') {
+
+        if (params['type'] == 'open') {
+
+            _YaSend('ya.pdp_credit_link');
+            _GoogleSend({
+
+                'event' : 'PDP',
+                'action' : 'Credit Link',
+
+            });
+
+        }
+
+    } else if (params['object'] == 'review') {
+
+        if (params['type'] == 'open') {
+
+            _YaSend('ya.pdp_click_reviews');
+            _GoogleSend({
+
+                'event' : 'PDP',
+                'action' : (typeof params['element'] == 'undefined' ? 'Click List' : 'Click'),
+                'target' : 'Reviews'
+
+            });
+
+        }
+
+    }
+
+}, {}, true);
+
+EventManager.addTrigger('sku', function(params) {
+
+    if (params['object'] == 'photo_small') {
+
+            if (params['type'] == 'click') {
+
+                _YaSend('ya.pdp_image');
+                _GoogleSend({
+
+                'event' : 'PDP',
+                'action' : 'Image',
+                'target' : 'Preview'
+
+            });
+
+            }
+
+    } else if (params['object'] == 'photo_big') {
+
+        if (params['type'] == 'click') {
+
+            _YaSend('ya.pdp_image');
+            _GoogleSend({
+
+                'event' : 'PDP',
+                'action' : 'Image',
+                'target' : 'Main'
+
+            });
+
+        }
+
+    }
+
+}, {}, true);
+
+EventManager.addTrigger('inputEvents', function(params) {
+
+    if (typeof params['form'] != 'undefined' && params['form'] == 'checkout') {
+
+            if (['basket-user-name', 'basket-user-email', 'basket-user-phone'].indexOf( params['id'] ) != -1) {
+
+                if (params['type'] == 'blur' && typeof params['value'] != 'undefined' && params['value'] != '' && params['value'] != ' ') {
+
+                    _GoogleSend({
+
+                        'event' : 'Checkout',
+                        'action' : 'User Contacts',
+                        'target' : {'basket-user-name' : 'name', 'basket-user-email' : 'email', 'basket-user-phone' : 'phone'}[params['id']]
+
+                    });
+
+                }
+
+            } else if (params['id'] == 'input-coupon') {
+
+                if (params['type'] == 'save') {
+
+                    _GoogleSend({
+
+                        'event' : 'Checkout',
+                        'action' : 'Coupon',
+                        'target' : params['value']
+
+                    });
+
+                }
+
+            } else if (params['id'] == 'delivery') {
+
+                if (params['type'] == 'save') {
+
+                    _GoogleSend({
+
+                        'event' : 'Checkout',
+                        'action' : 'Delivery',
+                        'target' : params['value']
+
+                    });
+
+                }
+
+            } else if (params['id'] == 'payment') {
+
+                if (params['type'] == 'save') {
+
+                    _GoogleSend({
+
+                        'event' : 'Checkout',
+                        'action' : 'Payment',
+                        'target' : params['value']
+
+                    });
+
+                }
+
+            }
+
+    }
+
+}, {}, true);
+

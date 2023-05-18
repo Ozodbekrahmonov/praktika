@@ -1,0 +1,1 @@
+window.hdeContactWidget = {"size":30,"position":"bottom-right","direction":"top","bg":"FF6912","color":"FFFFFF","buttons":[{"source":"chat","url":"","bg":"23869b"},{"source":"vk","url":"https:\/\/vk.com\/im?sel=-122404498","bg":""}]};

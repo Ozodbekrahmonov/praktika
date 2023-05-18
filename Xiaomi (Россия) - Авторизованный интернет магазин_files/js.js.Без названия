@@ -1,0 +1,384 @@
+$(document).ready(function() {
+
+    $('[data-compare-button]').click(function() {
+        let _id = $(this).data('compare-button');
+
+        $.ajax({
+            url: $(this).attr('href'),
+            dataType: 'json',
+            data: {'ajax': 'Y'},
+            success: function(data) {
+                _updateCompareButtons(data, _id);
+            }
+        });
+
+        return false;
+
+    });
+
+    $('.js-compare-del-item').click(function() {
+
+        const _id = $(this).data('id');
+        const breakpoint = {
+            sm: 576,
+            md: 768,
+            lg: 992,
+            xl: 1200
+        };
+        const options = {
+
+            speed: 1000,
+            mobileFirst: true,
+            variableWidth: true,
+            focusOnSelect: true,
+            slidesToShow: 1,
+            slidesToScroll: 1,
+            responsive: [{
+                breakpoint: breakpoint.sm,
+                settings: {
+                    slidesToShow: 2
+                }
+            },
+                {
+                    breakpoint: breakpoint.md,
+                    settings: {
+                        slidesToShow: 3
+                    }
+                },
+                {
+                    breakpoint: breakpoint.lg,
+                    settings: {
+                        slidesToShow: 4
+                    }
+                },
+                {
+                    breakpoint: breakpoint.xl,
+                    settings: {
+                        slidesToShow: 6
+                    }
+                }
+            ]
+        };
+
+        $.ajax({
+            url: $(this).data('url'),
+            dataType: 'json',
+            data: {'ajax': 'Y'},
+            success: function(data) {
+                $('#compare_item_' + _id).remove();
+                _updateCompareButtons(data);
+                _updateCompareTabs(data);
+                $('#slickCompareTabs').not('.slick-initialized').slick(options);
+                _updateCompareItems(data);
+                _updateCompareTable(data, _id);
+                _refreshCompareTableAfterDeleteElem(data);
+            }
+        });
+
+        return false;
+
+    });
+});
+
+function _updateCompareButtons(data, _id) {
+
+    if (typeof data.items !== 'undefined') {
+        let comparePopover = [];
+        $('[data-compare-button="' + _id + '"]').removeClass('active');
+        if (typeof _id !== 'undefined') {
+            $('[data-compare-button="' + _id + '"]').attr('data-content', 'Добавить к сравнению');
+            comparePopover.push({
+                el: $('#' + _id),
+                html: `Добавить к сравнению`,
+                class: `compare-popover`
+            });
+        }
+
+
+        for (var i in data.items) {
+            $('[data-compare-button="' + data.items[i]['ID'] + '"]').addClass('active');
+            if (typeof _id !== 'undefined') {
+                $('[data-compare-button="' + data.items[i]['ID'] + '"]').attr('data-content', 'Удалить из сравнения');
+                comparePopover.push({
+                    el: $('#' + data.items[i]['ID']),
+                    html: `Удалить из сравнения`,
+                    class: `compare-popover`
+                });
+            }
+        }
+
+        if (data.items[_id]) {
+            BX.onCustomEvent(window, 'afterAddToCompare', [data, _id]);
+        }else{
+            BX.onCustomEvent(window, 'afterRemoveFromCompare', [data, _id]);
+        }
+
+        const screenWidth = window.screen.width;
+        if (typeof _id !== 'undefined' && screenWidth > 574) {
+            comparePopover.popoverMultiRenders({
+                closeAround: true
+            });
+        }
+
+        $('.compare_top').removeClass('active');
+        const compareTop = document.querySelectorAll('.data-compare-amount');
+
+        if (Object.keys(data.items).length > 0) {
+            compareTop.forEach(function(item) {
+                item.dataset.compareAmount = Object.keys(data.items).length;
+                if (item.classList.contains('deactive')) {
+                    item.classList.remove('deactive');
+                }
+            });
+
+        } else {
+            compareTop.forEach(function(item) {
+                item.removeAttribute('data-compare-amount');
+                item.classList.add('deactive');
+            });
+
+        }
+
+        if (Object.keys(data.items).length > 0) {
+            $('.compare_top').addClass('active');
+        }
+
+    }
+
+}
+
+function _updateCompareTabs(data) {
+
+    if (typeof data.items !== 'undefined') {
+        let compareTabs = `<div class="container pl-lg-2 pl-3 compare-buttons component-tabs__links nav flex-row flex-nowrap" id="slickCompareTabs" role="tablist">`;
+
+        compareTabs = compareTabs + `<div class="slide"><a class="nav-link ` + (data.requestElementCode === '' ? 'active' : '') + `" 
+                href="/ru/compare/"
+                aria-selected="true"><span>Всё </span><span class="ml-1 text-active">${Object.keys(data.items).length}</span>
+            </a></div>`;
+        let noAfter = '';
+        for (var i in data.types) {
+            if (data.translitTypes[i].length < 15) {
+                noAfter = 'no-after';
+            } else {
+                noAfter = '';
+            }
+            compareTabs = compareTabs + `<div class="slide"><a class="nav-link ` + (data.requestElementCode === i ? 'active' : '') + `" 
+                href="/ru/compare/${i}/"
+                aria-selected="true"><span class="hide-tab ${noAfter}">${data.translitTypes[i]}</span> <span class="ml-1 text-active">${data.types[i].length}</span>
+            </a></div>`;
+
+        }
+
+        if (data.requestElementCode !== '' && typeof data.types[data.requestElementCode] === 'undefined') {
+            const typeCode = getKeyByValue(data.dictionary.word, data.requestElementCode)
+
+            compareTabs = compareTabs + `<div class="slide"><a class="nav-link active" 
+                href="/ru/compare/${data.requestElementCode}/"
+                aria-selected="true"><span class="hide-tab ${noAfter}">${typeCode}</span> <span class="ml-1 text-active">0</span>
+            </a></div>`;
+        }
+        compareTabs = compareTabs + `</div>`;
+
+        const domElement = $(compareTabs);
+
+        $('.component-tabs__links').replaceWith(domElement);
+
+    }
+}
+
+function _updateCompareItems(data) {
+    if (typeof data.items !== 'undefined') {
+
+        if (data.requestElementCode === '' && Object.keys(data.items).length == 1
+            || data.requestElementCode !== ''
+            && typeof data.types[data.requestElementCode] !== 'undefined' && data.types[data.requestElementCode].length < 2) {
+
+            let emptyCompareCard = `
+                <div class="col-6 col-lg-3 compare-good__empty mb-3 rounded">
+                    <div class="product-empty bg-gray-150 d-flex justify-content-center">
+                        <div class="row align-items-center product-empty__body">
+                            <a href="/ru/catalog/" class="empty-href" target="_blank">
+                                <div class="col text-center">
+                                    <div class="product-empty__img"><img src="/local/templates/main/images/plus.png"></div>
+                                    <div class="pt-4">Добавить товар<br />к сравнению</div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>`;
+            const domElement = $(emptyCompareCard);
+
+            domElement.appendTo($('.compare-goods'));
+        }
+
+        // если была только одна карточка
+        if (Object.keys(data.items).length === 0 || typeof data.types[data.requestElementCode] === 'undefined' && data.requestElementCode !== '') {
+            const emptyCard = document.querySelector('.product-empty');
+            emptyCard.classList.add('min-height');
+            const emptyCompareGood = document.querySelector('.compare-good__empty');
+            emptyCompareGood.classList.add('ml-2');
+        }
+    }
+
+}
+
+function _updateCompareTable(data, _id) {
+    if (typeof data.items !== 'undefined') {
+
+        if (data.requestElementCode !== '' && typeof data.types[data.requestElementCode] === 'undefined' || data.requestElementCode === '' && Object.keys(data.items).length === 0) {
+            const compareTable = document.getElementById('compTable');
+            compareTable.remove();
+            const compareCheckbox = document.getElementById('compareCheckbox');
+            compareCheckbox.remove();
+
+        } else {
+
+            // колонка свойств удаляемого товара
+            const cellsProps = document.querySelectorAll('div[name=prop' + _id + ']');
+
+            cellsProps.forEach(function(item) {
+                const propName = item.querySelector('.prop-name');
+                if (typeof propName !== 'undefined' && item.classList.contains('num-0')) {
+                    // если есть соседняя ячейка, то меняем класс у prop name
+                    let propNameNext = document.querySelectorAll('div.num-1 div.prop-name');
+                    propNameNext.forEach(function(item) {
+                        if (typeof item !== 'undefined') {
+                            item.classList.remove('invisible');
+                            item.classList.add('sticky');
+                        }
+                    });
+
+                }
+                item.remove();
+            });
+
+            const cellsPropsRow = document.querySelectorAll('.compare-group__table');
+            cellsPropsRow.forEach(function(item) {
+                for (let i = 0; i < item.children.length; i++) {
+                    item.children[i].classList.remove('num-' + +(i + 1));
+                    item.children[i].classList.add('num-' + i);
+                }
+            });
+        }
+    }
+}
+
+// проверка массива на уникальность значений
+function _uniqueArray4(a) {
+    return [...new Set(a)];
+}
+
+function _refreshCompareTableAfterDeleteElem(data) {
+    if (data.requestElementCode === '' && Object.keys(data.items).length === 1
+        || data.requestElementCode !== ''
+        && typeof data.types[data.requestElementCode] !== 'undefined' && data.types[data.requestElementCode].length < 2) {
+        // один товар, убираем все признаки одинаковых свойств
+        _removeHidePropsClass();
+
+    } else {
+
+        // все свойства
+        const compareGroupTables = document.querySelectorAll('.compare-group__table');
+        compareGroupTables.forEach(function(item) {
+            let columns = item.querySelectorAll('.prop-column');
+            let propValues = [];
+            columns.forEach(function(cell) {
+                propValues.push(cell.querySelector('.prop-value').innerHTML);
+            });
+            if (_uniqueArray4(propValues).length === 1) {
+                item.classList.add('js-hide-prop');
+            }
+        });
+
+        _hideCompareGroupProps();
+        _refreshCheckboxOnlyDiffs();
+    }
+}
+
+function _removeHidePropsClass() {
+    const allHidePropsClass = document.querySelectorAll('.js-hide-prop');
+    allHidePropsClass.forEach(function(item) {
+        item.classList.remove('js-hide-prop');
+    });
+}
+
+function _refreshCheckboxOnlyDiffs() {
+    const checkbox = document.getElementById('onlyDiffs');
+    const hidePropElements = document.querySelectorAll('.js-hide-prop');
+    if (checkbox.checked) {
+        hidePropElements.forEach(function(item) {
+            item.classList.add('d-none');
+        });
+        _hideCompareGroupProps();
+    }
+}
+
+function _hideCompareGroupProps() {
+    const compareGroupTitles = document.querySelectorAll('.compare-group__title');
+
+    compareGroupTitles.forEach(function(item) {
+        // получить id collapse для получения дочерних элементов группы х-к
+        let compareGroupId = item.getAttribute('aria-controls');
+        // получаем все элементы с id группы - это характеристики
+        let compareProps = document.querySelectorAll('#' + compareGroupId);
+        // получаем все элементы с id группы которые с одинаковыми значениями
+        let compareNoDiffProps = document.querySelectorAll('#' + compareGroupId + '.js-hide-prop');
+
+        if (compareProps.length === compareNoDiffProps.length) {
+            item.classList.add('js-hide-prop');
+        }
+    });
+
+}
+
+Array.prototype.popoverMultiRenders = function(param = {}) {
+    this.forEach(function(item) {
+        if (item.el.length > 0) {
+            item.el.popover('dispose');
+            item.el.popover({
+                container: 'body',
+                animation: false,
+                template: `<div class="popover-custom popover js-popover-opened ${item.class}" role="tooltip">
+                          <div class="popover-custom__arrow arrow"></div>
+                          <div class="popover-custom__body body">
+                            ${item.html}
+                          </div>
+                       </div>`,
+                offset: item.offsetPopover ? item.offsetPopover : ''
+            });
+            // eslint-disable-next-line no-prototype-builtins
+            if (item.hasOwnProperty('showPopover') && item.showPopover === '') item.el.popover('disable')
+            if (item.showPopover) {
+                if (item.el.length !== 0 && item.el.length >= 1) {
+                    for (let elem of item.el) {
+                        if ($(elem).css('display') !== 'none') {
+                            $(elem).on('shown.bs.popover', function() {
+                                if (item.call) item.call();
+                                if (param.closeAround) closePopover($('.js-popover-opened.' + item.class));
+                            });
+                            $(elem).popover('show');
+                        }
+                    }
+                }
+            }
+            item.el.on('shown.bs.popover', function() {
+                if (item.call) item.call();
+                if (param.closeAround) closePopover($('.js-popover-opened.' + item.class));
+            });
+        }
+    });
+}
+
+function closePopover(el) {
+    $(document).mouseup(function(e) {
+        const div = el;
+        if (!div.is(e.target) && div.has(e.target).length === 0) {
+            div.popover('hide');
+        }
+    });
+}
+
+function getKeyByValue(object, value) {
+    return Object.keys(object).find(key => object[key] === value);
+}

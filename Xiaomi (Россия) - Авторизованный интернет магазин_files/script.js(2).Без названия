@@ -1,0 +1,144 @@
+$().ready(function() {
+
+    /******************************
+     *********** Mindbox **********
+     ******************************/
+
+    if (typeof (window.Mindbox) === 'undefined') {
+
+        class Mindbox {
+
+            constructor(params) {
+                /*PARAMS*/
+                this.componentName = 'mi:mindbox';
+                this.langPrefix = 'MI_MINDBOX_CLASS_PREF';
+                this.langPrefixHtml = 'MI_MINDBOX_CLASS_PREF_HTML_';
+                this.arResult = params.arResult;
+                this.arParams = params.arParams;
+                this.signedParameters = params.signedParameters;
+                this.init();
+            }
+
+            init() {
+                if (!BX.Mi.Mindbox.Instance) {
+                    BX.Mi.Mindbox.Instance = new BX.Mi.Mindbox.Core();
+                    this.initEvents();
+                }
+
+                $().ready(function() {
+                    if (window.PopMechanicCartData) {
+                        //https://developers.mindbox.ru/page/%D1%80%D0%B5%D0%BA%D0%BE%D0%BC%D0%B5%D0%BD%D0%B4%D0%B0%D1%86%D0%B8%D0%B8-%D0%BD%D0%B0-%D1%81%D0%B0%D0%B9%D1%82
+                        //Пункт 3.3
+                        //При загрузке страницы добавляем данные о составе корзины, для персонализации
+                        BX.Mi.Mindbox.Instance.setPersonalizationSetCart(window.PopMechanicCartData.products);
+                    }
+                });
+            }
+
+            initEvents() {
+                BX.addCustomEvent('afterAddToBasket', function(basket) {
+                    const products = basket['BASKET']['PRODUCTS'];
+
+                    if (products) {
+                        //https://developers.mindbox.ru/page/%D1%80%D0%B5%D0%BA%D0%BE%D0%BC%D0%B5%D0%BD%D0%B4%D0%B0%D1%86%D0%B8%D0%B8-%D0%BD%D0%B0-%D1%81%D0%B0%D0%B9%D1%82
+                        //Пункт 3.3
+                        BX.Mi.Mindbox.Instance.setPersonalizationSetCart(products);
+                    }
+                });
+            }
+
+            setPopMechanicData(basketItems) {
+                BX.Mi.Mindbox.Instance.setPopMechanicData(basketItems);
+            }
+
+            sendActionRequest(action, data, callbackSuccess, callbackFailure) {
+
+                callbackSuccess = callbackSuccess || null;
+                callbackFailure = callbackFailure || BX.proxy(this.showErrorPopup, this);
+                data = data || {};
+                //{sessid: BX.message('bitrix_sessid')}
+
+                var _self = this;
+
+                //_self.parentElement.addClass("wait-bg");
+
+                BX.ajax.runComponentAction(this.componentName, action, {
+                    'mode': 'class',
+                    'data': data,
+                    'signedParameters': this.signedParameters,
+                }).then(
+                    function(response) {
+
+                        var data = response.data || {};
+                        if (data.error) {
+                            callbackFailure.apply(_self, [data]);
+                        } else if (callbackSuccess) {
+                            callbackSuccess.apply(_self, [data]);
+                        }
+
+                        //_self.parentElement.removeClass("wait-bg");
+
+                    },
+                    function() {
+                        var data = {'error': true, 'text': ''};
+                        callbackFailure.apply(_self, [data]);
+                        //_self.parentElement.removeClass("wait-bg");
+                    }
+                );
+
+            }
+
+            showErrorPopup(data) {
+
+                data = data || {};
+                var text = data.text;
+                var popup = BX.PopupWindowManager.create(
+                    this.id + '-errors-popup',
+                    null,
+                    {
+                        autoHide: true,
+                        lightShadow: true,
+                        closeByEsc: true,
+                        overlay: {backgroundColor: 'black', opacity: 500}
+                    }
+                );
+                popup.setButtons([
+                    new BX.PopupWindowButton({
+                        text: BX.message['MI_MINDBOX_CLASS_PREF_CLOSE'],
+                        events: {
+                            click: function() {
+                                this.popupWindow.close();
+                            }
+                        }
+                    })
+                ]);
+                popup.setContent('<span class="favorite-warning-popup-alert">' + text + '</span>');
+                popup.show();
+
+            }
+
+            getData(data, additionalCallback) {
+
+                var _self = this;
+
+                this.sendActionRequest('getData', data, response => {
+
+                        if (!response.error) {
+                            if (typeof additionalCallback === 'function') {
+                                additionalCallback(response);
+                            }
+                        } else {
+                            this.showErrorPopup(response.error);
+                        }
+
+                    }
+                );
+            }
+
+        }
+
+        window.Mindbox = Mindbox;
+
+    }
+
+});
